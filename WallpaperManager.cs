@@ -86,8 +86,17 @@ namespace RedditWallpapers
             imageList.ColorDepth = ColorDepth.Depth24Bit;
             foreach (Uri uri in postURLs)
             {
-                var filename = tempPath + Path.GetFileName(uri.LocalPath) + "thumb";
-                webClient.DownloadFile(uri + "s.png", filename);
+                string ext = Path.GetExtension(uri.LocalPath);
+                string address = uri.AbsoluteUri.Substring(0, uri.AbsoluteUri.LastIndexOf(".")) + "s" + ext;
+                if (ext == "")
+                {
+                    // some URLs don't point directly to the image, so appending a dummy extension
+                    ext = ".png";
+                    address = uri.AbsoluteUri + "s" + ext;
+                }
+
+                string filename = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(uri.LocalPath) + "_thumb" + ext);
+                webClient.DownloadFile(address, filename);
                 imageList.Images.Add(Image.FromFile(filename));
             }
             return imageList; 
@@ -97,7 +106,7 @@ namespace RedditWallpapers
         {
             try
             {
-                Directory.Delete(tempPath);
+                Directory.Delete(tempPath, true);
             }
             catch { } //don't care
         }
@@ -112,6 +121,7 @@ namespace RedditWallpapers
                 {
                     //TODO: Implement Imgur API for pulling these images correctly
                     url = url + ".png";
+                    fullOutPath += ".png";
                 }
             }
             webClient.DownloadFile(url, fullOutPath);

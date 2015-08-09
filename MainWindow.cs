@@ -71,6 +71,7 @@ namespace RedditWallpapers
                 return;
             }
             ArrayList urlList = new ArrayList();
+            this.resultsList.Items.Clear();
             foreach (Post post in results)
             {
                 if (post.Url.OriginalString.Contains("imgur"))
