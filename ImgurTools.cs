@@ -47,7 +47,25 @@ namespace RedditWallpapers
 
                 string filename = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(uri.LocalPath) + "_thumb" + ext);
                 webClient.DownloadFile(address, filename);
-                imageList.Images.Add(Image.FromFile(filename));
+                try
+                {
+                    imageList.Images.Add(Image.FromFile(filename));
+                }
+                catch (OutOfMemoryException e)
+                {
+                    try
+                    {
+                        address = uri.AbsoluteUri + "b" + ext;
+                        filename = Path.Combine(tempPath, Path.GetFileNameWithoutExtension(uri.LocalPath) + "_thumb" + ext);
+                        webClient.DownloadFile(address, filename);
+                        imageList.Images.Add(Image.FromFile(filename));
+                    }
+                    catch (OutOfMemoryException e2)
+                    {
+                        imageList.Images.Add(RedditWallpaperSetter.Properties.Resources.Broken_icon);
+                    }
+                }
+                      
             }
             return imageList;
         }
@@ -70,12 +88,21 @@ namespace RedditWallpapers
             return json.data.type;
         }
 
+        string getImageDirectLink(string imageId)
+        {
+            string uri = imgurAPIBaseURL + "/image/" + imageId;
+            webClient.Headers.Add("Authorization", "Client-ID " + ApiKeys.imgurClientId);
+            string retval = webClient.DownloadString(uri);
+            dynamic json = System.Web.Helpers.Json.Decode(retval);
+            return json.data.link;
+        }
+
         string getImageIdFromUrl(string url)
         {
             string imageid = url.Split('/').Last();
             if (imageid.Contains('.'))
             {
-                imageid = imageid.Substring(imageid.IndexOf('.'));
+                imageid = imageid.Substring(0, imageid.IndexOf('.'));
             }
             return imageid;
         }
@@ -83,18 +110,7 @@ namespace RedditWallpapers
         internal string getFullImage(string url, string localFilename)
         {
             string fullOutPath = Path.Combine(picsPath, localFilename);
-            //TODO: Use this imagetype here to decide on appropriate paths
-            string imagetype = getImageType(getImageIdFromUrl(url));
-            if (!url.StartsWith("http://i."))
-            {
-                url = url.Replace("http://", "http://i.");
-                if (!url.EndsWith(".png") || !url.EndsWith(".jpg"))
-                {
-                    //TODO: Implement Imgur API for pulling these images correctly
-                    url = url + ".png";
-                    fullOutPath += ".png";
-                }
-            }
+            string imageLink = getImageDirectLink(getImageIdFromUrl(url));
             webClient.DownloadFile(url, fullOutPath);
             return fullOutPath;
         }
